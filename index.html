@@ -157,7 +157,7 @@ function render(list, query = "") {
           "(Please attach a photo of the ingredients label below)\n\n" +
           "Thanks!"
         );
-      container.innerHTML = `
+   container.innerHTML = `
         <div class="card" style="display:block;text-align:center;padding:32px 20px;">
           <div style="font-size:40px;margin-bottom:12px;">🔍</div>
           <p style="font-size:16px;font-weight:600;margin:0 0 8px;">
@@ -166,10 +166,10 @@ function render(list, query = "") {
           <p style="color:#666;font-size:14px;margin:0 0 20px;">
             Snap a photo of the ingredients label and email it to us. We'll add it.
           </p>
-          <a href="${emailLink}"
-             style="display:inline-block;background:#111;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
+          <button onclick="sendEmail('${escapeHTML(query).replace(/'/g, "\\'")}')"
+                  style="display:inline-block;background:#111;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;border:none;cursor:pointer;font-size:14px;">
             📧 Email us the label
-          </a>
+          </button>
           <p style="color:#aaa;font-size:12px;margin-top:16px;">
             We review every submission personally.
           </p>
@@ -251,7 +251,28 @@ document.getElementById("search").addEventListener("input", e => {
   );
   render(filtered, e.target.value.trim());
 });
+// --- Send Email (mobile-safe) ---
+function sendEmail(productName) {
+  const email = "newphone280223@gmail.com";
+  const subject = encodeURIComponent("Add product: " + productName);
+  const body = encodeURIComponent(
+    "Hi,\n\n" +
+    "I'd like to add this product to your database:\n\n" +
+    "Product: " + productName + "\n\n" +
+    "(Please attach a photo of the ingredients label below)\n\n" +
+    "Thanks!"
+  );
+  const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
 
+  // Create a hidden anchor and click it — bypasses mobile browser blocks
+  const link = document.createElement("a");
+  link.style.visibility = "hidden";
+  link.style.position = "absolute";
+  link.href = mailtoUrl;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 loadProducts();
 </script>
 
