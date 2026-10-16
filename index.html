@@ -559,11 +559,14 @@ function filterAndRender(q) {
 // --- Events ---
 searchHome.addEventListener("input", e => {
   const q = e.target.value.trim();
-  if (q.length > 0) goToResults(q);
+  if (q.length >= 2) goToResults(q);
 });
 
 searchHome.addEventListener("keydown", e => {
-  if (e.key === "Enter") goToResults(e.target.value.trim());
+  if (e.key === "Enter") {
+    const q = e.target.value.trim();
+    if (q.length > 0) goToResults(q);
+  }
 });
 
 searchTop.addEventListener("input", e => {
