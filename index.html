@@ -143,12 +143,41 @@ function parseCSV(text) {
 }
 
 // --- Render ---
-function render(list) {
+function render(list, query = "") {
   const container = document.getElementById("results");
   const stats = document.getElementById("stats");
 
   if (!list.length) {
-    container.innerHTML = '<p class="empty">No products found.</p>';
+    if (query) {
+      const emailLink = "mailto:YOUR_EMAIL@gmail.com" +
+        "?subject=" + encodeURIComponent("Add product: " + query) +
+        "&body=" + encodeURIComponent(
+          "Hi,\n\nI'd like to add this product to your database:\n\n" +
+          "Product: " + query + "\n\n" +
+          "(Please attach a photo of the ingredients label below)\n\n" +
+          "Thanks!"
+        );
+      container.innerHTML = `
+        <div class="card" style="display:block;text-align:center;padding:32px 20px;">
+          <div style="font-size:40px;margin-bottom:12px;">🔍</div>
+          <p style="font-size:16px;font-weight:600;margin:0 0 8px;">
+            "${escapeHTML(query)}" isn't in our database yet.
+          </p>
+          <p style="color:#666;font-size:14px;margin:0 0 20px;">
+            Snap a photo of the ingredients label and email it to us. We'll add it.
+          </p>
+          <a href="${emailLink}"
+             style="display:inline-block;background:#111;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
+            📧 Email us the label
+          </a>
+          <p style="color:#aaa;font-size:12px;margin-top:16px;">
+            We review every submission personally.
+          </p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = '<p class="empty">No products found.</p>';
+    }
     stats.textContent = "";
     return;
   }
@@ -178,7 +207,6 @@ function render(list) {
     `;
   }).join("");
 }
-
 function escapeHTML(str) {
   return String(str).replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
