@@ -149,7 +149,7 @@ function render(list, query = "") {
 
   if (!list.length) {
     if (query) {
-      const emailLink = "mailto:YOUR_EMAIL@gmail.com" +
+      const emailLink = "mailto:newphone280223@gmail.com" +
         "?subject=" + encodeURIComponent("Add product: " + query) +
         "&body=" + encodeURIComponent(
           "Hi,\n\nI'd like to add this product to your database:\n\n" +
@@ -249,7 +249,7 @@ document.getElementById("search").addEventListener("input", e => {
   const filtered = products.filter(p =>
     `${p.name} ${p.brand} ${p.barcode} ${p.category}`.toLowerCase().includes(q)
   );
-  render(filtered);
+  render(filtered, e.target.value.trim());
 });
 
 loadProducts();
