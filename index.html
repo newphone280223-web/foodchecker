@@ -89,6 +89,24 @@
     margin-bottom: 16px;
   }
   .error code { background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+   .buy-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .buy-btn.blinkit {
+    display: inline-block;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    background: #f8cb46;
+    color: #111;
+    transition: opacity .15s;
+  }
+  .buy-btn.blinkit:hover { opacity: 0.85; }
 </style>
 </head>
 <body>
@@ -194,6 +212,7 @@ function render(list, query = "") {
           <div class="meta">${escapeHTML(p.brand || "")}${p.brand && p.category ? " · " : ""}${escapeHTML(p.category || "")}</div>
           ${warnHTML}
           <div class="ingredients">${escapeHTML(p.ingredients_raw || "")}</div>
+          ${buildBuyButtons(p)}
         </div>
       </div>
     `;
@@ -243,6 +262,24 @@ document.getElementById("search").addEventListener("input", e => {
   );
   render(filtered, e.target.value.trim());
 });
+// --- Blinkit Buy Button ---
+function buildBuyButtons(p) {
+  const query = encodeURIComponent(`${p.brand || ""} ${p.name || ""}`.trim());
+  const direct = (p.blinkit_url || "").trim();
+
+  const url = direct || (query ? `https://blinkit.com/s/?q=${query}` : "");
+  if (!url) return "";
+
+  const label = direct ? "Buy on Blinkit" : "Search on Blinkit";
+
+  return `
+    <div class="buy-row">
+      <a href="${url}" target="_blank" rel="noopener" class="buy-btn blinkit">
+        ⚡ ${label}
+      </a>
+    </div>
+  `;
+}
 
 loadProducts();
 </script>
