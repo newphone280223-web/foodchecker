@@ -5,526 +5,149 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Food Warning Checker</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#f4f6f5; --card:#fff; --ink:#122019; --muted:#5d6b64; --line:#e3e8e5; --chip:#eef2f0;
+  --safe:#1f9d63; --fine:#c99a06; --limit:#ee7a1c; --avoid:#d93025; --track:#dde3e0;
+  --safe-bg:#e7f5ee; --fine-bg:#fbf3d8; --limit-bg:#fdeddc; --avoid-bg:#fce6e4;
+  --r-lg:22px; --r-md:14px; --r-sm:10px;
+  --shadow:0 1px 2px rgba(18,32,25,.05),0 6px 20px -8px rgba(18,32,25,.12);
+  --font:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",Roboto,system-ui,sans-serif;
+}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);line-height:1.45;min-height:100vh;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #7fb5ff;outline-offset:2px}
+.page{max-width:660px;margin:0 auto;padding:0 18px}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 
-:root {
-  --bg: #ffffff;
-  --text: #202124;
-  --muted: #5f6368;
-  --border: #dadce0;
-  --hover: #f8f9fa;
-  --accent: #1a73e8;
-}
+/* HOME */
+.home{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.home.hidden{display:none}
+.mark{width:64px;height:64px;border-radius:20px;background:var(--ink);color:#fff;display:grid;place-items:center;margin-bottom:18px;box-shadow:var(--shadow)}
+.mark .ico{width:32px;height:32px}
+.home h1{font-size:34px;font-weight:700;letter-spacing:-.8px;margin-bottom:8px}
+.tagline{color:var(--muted);font-size:15px;margin-bottom:28px}
+.search-wrap{position:relative;width:100%;max-width:480px}
+.search-wrap .ico{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--muted);width:18px;height:18px}
+.search{width:100%;height:54px;padding:0 20px 0 48px;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1.5px solid transparent;border-radius:27px;box-shadow:var(--shadow);outline:none;transition:border-color .15s}
+.search:focus{border-color:var(--ink)}
+.search::placeholder{color:#8a9790}
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.5;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
+/* RESULTS */
+.results-page{display:none}
+.results-page.active{display:block}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(244,246,245,.92);backdrop-filter:blur(10px);display:flex;align-items:center;gap:12px;padding:12px 0}
+.topbar .mark{width:40px;height:40px;border-radius:13px;margin:0;box-shadow:none;border:0;cursor:pointer}
+.topbar .mark .ico{width:22px;height:22px}
+.topbar .search-wrap{max-width:none;flex:1}
+.topbar .search{height:44px;font-size:15px;border-radius:22px;padding-left:44px}
+.topbar .search-wrap .ico{left:16px}
+.stats{font-size:13px;color:var(--muted);margin:6px 2px 14px}
 
-.page {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
+/* CARD */
+.card{--t:var(--muted);--tbg:var(--chip);background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:16px;margin-bottom:14px;display:grid;grid-template-columns:88px 1fr;gap:6px 14px;border-left:6px solid var(--t)}
+.card.safe{--t:var(--safe);--tbg:var(--safe-bg)}
+.card.fine{--t:var(--fine);--tbg:var(--fine-bg)}
+.card.limit{--t:var(--limit);--tbg:var(--limit-bg)}
+.card.avoid{--t:var(--avoid);--tbg:var(--avoid-bg);background:linear-gradient(180deg,#fff7f6,#fff 70%)}
+.thumb{width:88px;height:88px;border-radius:var(--r-md);background:var(--chip);overflow:hidden;display:grid;place-items:center;color:#b3bdb7}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.head{min-width:0}
+.name{font-size:17px;font-weight:700;line-height:1.25;letter-spacing:-.2px}
+.brand{font-size:13px;color:var(--muted);margin-top:2px}
+.verdict{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:6px}
 
-/* ---------- HOME (centered) ---------- */
-.home {
-  min-height: 78vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
+/* TIER METER: the signature element */
+.meter{display:flex;gap:4px;flex-shrink:0}
+.meter i{width:26px;height:8px;border-radius:4px;background:var(--track)}
+.meter i.on{background:var(--t)}
+.verdict-word{font-weight:700;font-size:15px;color:var(--t)}
+.verdict-word small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+.verdict-badge{margin-left:auto;width:32px;height:32px;border-radius:50%;background:var(--tbg);color:var(--t);display:grid;place-items:center}
+.verdict-badge .ico{width:18px;height:18px;stroke-width:2.4}
 
-.logo { font-size: 36px; margin-bottom: 4px; }
+/* WARNING CHIPS */
+.warns{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.wchip{display:flex;align-items:center;gap:6px;background:var(--chip);color:var(--ink);border-radius:12px;padding:6px 10px 6px 8px;font-size:12.5px;font-weight:600}
+.wchip .ico{width:18px;height:18px}
+.clean{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--safe)}
+.limit-line{grid-column:1/-1;background:var(--tbg);border-radius:var(--r-sm);padding:10px 12px;font-size:14px;font-weight:600;display:flex;gap:10px;align-items:center}
+.limit-line .ico{color:var(--t);width:18px;height:18px}
+.actions{grid-column:1/-1;display:flex;gap:8px;margin-top:4px}
+.btn{flex:1;height:44px;border-radius:22px;font-size:14px;font-weight:700;border:1.5px solid var(--ink);background:transparent;color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff}
+.btn:active{transform:scale(.98)}
 
-.home h1 {
-  font-size: 32px;
-  font-weight: 400;
-  letter-spacing: -0.5px;
-  margin-bottom: 8px;
-}
+/* SHEET */
+.scrim{position:fixed;inset:0;background:rgba(10,18,14,.45);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;z-index:101;width:100%;max-width:660px;max-height:88vh;overflow-y:auto;background:var(--card);border-radius:28px 28px 0 0;padding:10px 22px 28px;transform:translate(-50%,105%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.sheet.open{transform:translate(-50%,0)}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 16px}
+.sheet h2{font-size:21px;letter-spacing:-.3px;padding-right:8px}
+.sheet .brand{margin-bottom:14px}
+.sheet h3{font-size:14px;font-weight:700;margin:22px 0 10px}
+.why{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.why:first-of-type{border-top:0}
+.why .wi{width:40px;height:40px;border-radius:12px;background:var(--chip);display:grid;place-items:center;flex-shrink:0}
+.why b{display:block;font-size:14.5px}
+.why span{font-size:13px;color:var(--muted)}
+.ing{font-size:13px;color:var(--muted);background:var(--paper);border-radius:var(--r-md);padding:14px;line-height:1.6}
+.sheet .actions{margin-top:20px}
+.store{display:flex;justify-content:space-between;align-items:center;padding:15px 16px;margin-bottom:8px;border:1.5px solid var(--line);border-radius:var(--r-md);color:var(--ink);text-decoration:none;font-weight:600;font-size:15px}
+.store:hover{border-color:var(--ink)}
+.sub{font-size:13px;color:var(--muted);margin-bottom:16px}
 
-.home .tagline {
-  font-size: 14px;
-  color: var(--muted);
-  margin-bottom: 32px;
-}
-
-/* ---------- SEARCH (home) ---------- */
-.search-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-}
-
-#search-home {
-  width: 100%;
-  height: 48px;
-  padding: 0 46px;
-  font-size: 15px;
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  background: #fff;
-  outline: none;
-  transition: box-shadow .15s, border-color .15s;
-  font-family: inherit;
-  color: var(--text);
-}
-#search-home:hover {
-  box-shadow: 0 1px 6px rgba(32,33,36,.12);
-  border-color: transparent;
-}
-#search-home:focus {
-  box-shadow: 0 1px 8px rgba(32,33,36,.18);
-  border-color: transparent;
-}
-#search-home::placeholder { color: #80868b; }
-
-.search-icon {
-  position: absolute;
-  left: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 15px;
-  opacity: .55;
-  pointer-events: none;
-}
-
-/* ---------- RESULTS ---------- */
-.results-page { display: none; padding-top: 20px; }
-.results-page.active { display: block; }
-.home.hidden { display: none; }
-
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 0 16px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
-}
-
-.topbar-logo { font-size: 20px; flex-shrink: 0; }
-
-.topbar-search {
-  flex: 1;
-  position: relative;
-  min-width: 0;
-}
-
-#search-top {
-  width: 100%;
-  height: 40px;
-  padding: 0 40px;
-  font-size: 14px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: #fff;
-  outline: none;
-  font-family: inherit;
-  color: var(--text);
-  transition: box-shadow .15s, border-color .15s;
-}
-#search-top:hover {
-  box-shadow: 0 1px 6px rgba(32,33,36,.12);
-  border-color: transparent;
-}
-#search-top:focus {
-  box-shadow: 0 1px 8px rgba(32,33,36,.18);
-  border-color: transparent;
-}
-#search-top::placeholder { color: #80868b; }
-
-.topbar-search .search-icon {
-  left: 14px;
-  font-size: 13px;
-}
-
-/* ---------- STATS ---------- */
-.stats {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 14px;
-}
-
-/* ---------- CARDS ---------- */
-.card {
-  padding: 16px 0;
-  border-bottom: 1px solid #f1f3f4;
-  display: flex;
-  gap: 16px;
-  transition: background .12s;
-}
-.card:last-child { border-bottom: none; }
-
-.card img {
-  width: 84px;
-  height: 84px;
-  object-fit: cover;
-  border-radius: 10px;
-  background: #f1f3f4;
-  flex-shrink: 0;
-}
-
-.card-img-placeholder {
-  width: 84px;
-  height: 84px;
-  border-radius: 10px;
-  background: #f1f3f4;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  color: #bdc1c6;
-}
-
-.card-body { flex: 1; min-width: 0; }
-
-.name {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 3px;
-  line-height: 1.3;
-}
-
-.meta {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.tier {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 12px;
-  letter-spacing: .3px;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-.tier.safe    { background: #e6f4ea; color: #137333; }
-.tier.fine    { background: #fef7e0; color: #b06000; }
-.tier.limit   { background: #fce8e6; color: #c5221f; }
-.tier.avoid   { background: #fce8e6; color: #a50e0e; }
-.tier.unknown { background: #f1f3f4; color: #5f6368; }
-
-.warnings {
-  font-size: 20px;
-  line-height: 1.2;
-  margin-bottom: 6px;
-  letter-spacing: 2px;
-}
-.warnings.safe {
-  font-size: 13px;
-  color: #137333;
-  letter-spacing: 0;
-  padding: 2px 0;
-}
-
-.limit {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.ingredients {
-  font-size: 12.5px;
-  color: var(--muted);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-
-/* ---------- BUY BUTTON ---------- */
-.buy-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.buy-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: opacity .15s;
-}
-.buy-btn:hover { opacity: .85; }
-.buy-btn.blinkit { background: #f8cb46; color: #202124; }
-
-/* ---------- STATES ---------- */
-.empty, .loading {
-  text-align: center;
-  color: var(--muted);
-  padding: 60px 20px;
-  font-size: 14px;
-}
-
-.error {
-  background: #fce8e6;
-  color: #a50e0e;
-  padding: 14px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-
-.submit-card { text-align: center; padding: 48px 24px; }
-.submit-card .emoji { font-size: 40px; margin-bottom: 14px; display: block; }
-.submit-card h3 { font-size: 17px; font-weight: 500; margin-bottom: 8px; }
-.submit-card p {
-  color: var(--muted);
-  font-size: 14px;
-  margin-bottom: 22px;
-  max-width: 360px;
-  margin-left: auto;
-  margin-right: auto;
-}
-.submit-btn {
-  display: inline-block;
-  background: var(--accent);
-  color: white;
-  padding: 12px 22px;
-  border-radius: 22px;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 14px;
-  transition: box-shadow .15s;
-}
-.submit-btn:hover { box-shadow: 0 1px 6px rgba(26,115,232,.4); }
-
-/* ---------- LEGEND ---------- */
-.legend {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid #f1f3f4;
-}
-.legend-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 12px;
-}
-.legend-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px 16px;
-}
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.legend-item .icon {
-  font-size: 16px;
-  width: 20px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-footer {
-  text-align: center;
-  padding: 24px 20px 40px;
-  color: #80868b;
-  font-size: 12px;
-}
-/* ---------- BUY MODAL ---------- */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(2px);
-}
-.modal-overlay.active { display: flex; }
-
-.modal-content {
-  background: #fff;
-  width: 90%;
-  max-width: 400px;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  position: relative;
-  animation: modalPop 0.2s ease-out;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-@keyframes modalPop {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.modal-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: #f1f3f4;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 16px;
-  cursor: pointer;
-  color: #5f6368;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-}
-.modal-close:hover { background: #e8eaed; }
-
-.modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  padding-right: 32px;
-}
-.modal-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 20px;
-}
-
-.store-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.store-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  text-decoration: none;
-  color: var(--text);
-  font-weight: 500;
-  font-size: 14px;
-  transition: background 0.15s, border-color 0.15s;
-}
-.store-btn:hover {
-  background: var(--hover);
-  border-color: #ccc;
-}
-.store-btn span.icon {
-  font-size: 16px;
-  margin-right: 8px;
-}
-.store-btn span.arrow {
-  color: #999;
-  font-size: 16px;
-}
-/* ---------- MOBILE ---------- */
-@media (max-width: 500px) {
-  .home h1 { font-size: 26px; }
-  .home .tagline { font-size: 13px; }
-  .home .search-wrap { max-width: 100%; }
-
-  .topbar { gap: 10px; }
-  .topbar-search { min-width: 0; flex: 1; }
-
-  .card { gap: 12px; }
-  .card img, .card-img-placeholder { width: 72px; height: 72px; }
-  .name { font-size: 15px; }
-}
+/* STATES + LEGEND */
+.empty,.loading{text-align:center;color:var(--muted);padding:60px 20px;font-size:14px}
+.error{background:var(--avoid-bg);color:#8a1c14;padding:14px 16px;border-radius:var(--r-md);font-size:13px;margin-bottom:16px}
+.submit-card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);text-align:center;padding:44px 24px}
+.submit-card .wi{width:56px;height:56px;border-radius:18px;background:var(--chip);display:grid;place-items:center;margin:0 auto 16px}
+.submit-card h3{font-size:18px;margin-bottom:8px}
+.submit-card p{color:var(--muted);font-size:14px;max-width:340px;margin:0 auto 22px}
+.submit-card a{display:inline-block;background:var(--ink);color:#fff;padding:13px 24px;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px}
+.legend{margin-top:36px;background:var(--card);border-radius:var(--r-lg);padding:20px;box-shadow:var(--shadow)}
+.legend h4{font-size:14px;margin-bottom:12px}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 14px;margin-bottom:22px}
+.lgrid:last-child{margin-bottom:0}
+.litem{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.litem .meter i{width:12px;height:6px}
+footer{text-align:center;padding:28px 20px 48px;color:#8a9790;font-size:12px}
+@media (max-width:420px){.card{grid-template-columns:72px 1fr}.thumb{width:72px;height:72px}.name{font-size:16px}.meter i{width:22px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-
 <div class="page">
 
-  <!-- HOME STATE -->
   <section class="home" id="home">
-    <div class="logo">🍽️</div>
+    <div class="mark"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
     <h1>Food Warning Checker</h1>
     <p class="tagline">Know what's really inside before you buy.</p>
     <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input id="search-home" type="text" placeholder="Search a product..." autocomplete="off" />
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="search-home" class="search" type="text" placeholder="Search a product or brand" autocomplete="off" aria-label="Search a product">
     </div>
   </section>
 
-  <!-- RESULTS STATE -->
   <section class="results-page" id="results-page">
     <div class="topbar">
-      <span class="topbar-logo">🍽️</span>
-      <div class="topbar-search">
-        <span class="search-icon">🔍</span>
-        <input id="search-top" type="text" placeholder="Search a product..." autocomplete="off" />
+      <button class="mark" onclick="goHome()" aria-label="Home"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></button>
+      <div class="search-wrap">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="search-top" class="search" type="text" placeholder="Search a product or brand" autocomplete="off" aria-label="Search a product">
       </div>
     </div>
-
     <div class="stats" id="stats"></div>
     <div id="results"></div>
-
-    <!-- LEGEND -->
-    <div class="legend">
-      <div class="legend-title">Warning symbols</div>
-      <div class="legend-grid">
-        <div class="legend-item"><span class="icon">🍭</span> High sugar</div>
-        <div class="legend-item"><span class="icon">🧂</span> High salt</div>
-        <div class="legend-item"><span class="icon">🌴</span> Bad fats</div>
-        <div class="legend-item"><span class="icon">🌾</span> Refined flour</div>
-        <div class="legend-item"><span class="icon">⚠️</span> Artificial additives</div>
-        <div class="legend-item"><span class="icon">🎨</span> Artificial colours</div>
-        <div class="legend-item"><span class="icon">🧪</span> Preservatives</div>
-        <div class="legend-item"><span class="icon">🏭</span> Ultra-processed</div>
-      </div>
-
-      <div class="legend-title" style="margin-top:20px;">Tier meaning</div>
-      <div class="legend-grid">
-        <div class="legend-item"><span class="icon">🟢</span> Safe — enjoy freely</div>
-        <div class="legend-item"><span class="icon">🟡</span> Fine — in moderation</div>
-        <div class="legend-item"><span class="icon">🟠</span> Limit — watch how much</div>
-        <div class="legend-item"><span class="icon">🔴</span> Avoid — occasional only</div>
-      </div>
-    </div>
+    <div class="legend" id="legend"></div>
   </section>
-<!-- BUY POPUP MODAL -->
-<div class="modal-overlay" id="buyModal">
-  <div class="modal-content">
-    <button class="modal-close" onclick="closeBuyModal()">✕</button>
-    <div class="modal-title" id="modalProductName">Buy Product</div>
-    <div class="modal-sub">Choose a store to search for this product</div>
-    
-    <div class="store-list">
-      <a href="#" id="link-blinkit" target="_blank" rel="noopener" class="store-btn">Blinkit <span class="arrow">↗</span></a>
-      <a href="#" id="link-zepto" target="_blank" rel="noopener" class="store-btn">Zepto <span class="arrow">↗</span></a>
-      <a href="#" id="link-instamart" target="_blank" rel="noopener" class="store-btn">Swiggy Instamart <span class="arrow">↗</span></a>
-      <a href="#" id="link-bigbasket" target="_blank" rel="noopener" class="store-btn">BigBasket <span class="arrow">↗</span></a>
-      <a href="#" id="link-jiomart" target="_blank" rel="noopener" class="store-btn">JioMart <span class="arrow">↗</span></a>
-      <a href="#" id="link-amazon" target="_blank" rel="noopener" class="store-btn">Amazon <span class="arrow">↗</span></a>
-      <a href="#" id="link-flipkart" target="_blank" rel="noopener" class="store-btn">Flipkart <span class="arrow">↗</span></a>
-    </div>
-  </div>
+
+  <footer>Your health matters.</footer>
 </div>
-  <footer>Your Health Matters</footer>
-</div>
+
+<div class="scrim" id="scrim" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheet-body"></div></div>
 
 <script>
 // ============================================================
@@ -532,11 +155,47 @@ const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTAIDSLnI
 const FORM_URL = "https://forms.gle/SvL44DLJvkVobtud8";
 // ============================================================
 
+// ---------- ICONS (24x24, stroke, currentColor) ----------
+const svg = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const ICONS = {
+  sugar: svg('<path d="M12 3l7 4v8l-7 4-7-4V7z"/><path d="M5 7l7 4 7-4M12 11v8"/>'),
+  salt: svg('<path d="M9 3h6v3H9zM8 6h8l1 14a1 1 0 01-1 1H8a1 1 0 01-1-1z"/><circle cx="12" cy="12" r=".6"/><circle cx="10" cy="15.5" r=".6"/><circle cx="14" cy="15.5" r=".6"/>'),
+  fats: svg('<path d="M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z"/><path d="M9 15a3 3 0 003 3"/>'),
+  flour: svg('<path d="M12 21V9M12 9c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4zM12 9c2.5 0 4-1.5 4-4-2.500 0-4 1.500-4 4zM12 15c-2.5 0-4-1.5-4-4M12 15c2.5 0 4-1.5 4-4"/>'),
+  additives: svg('<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 8.500v4.500"/><circle cx="12" cy="16.200" r=".5"/>'),
+  colours: svg('<path d="M12 3a9 9 0 100 18c1.400 0 2-1 1.500-2-.6-1.200.2-2.500 1.600-2.500H17a4 4 0 004-4c0-5-4-9.500-9-9.500z"/><circle cx="8" cy="11" r=".7"/><circle cx="12" cy="7.500" r=".7"/><circle cx="16" cy="9.500" r=".7"/>'),
+  preserv: svg('<circle cx="12" cy="13.500" r="7.500"/><path d="M12 9.500v4l2.500 2M9.500 3h5"/>'),
+  ultra: svg('<path d="M3 21V12l6 3.500V12l6 3.500V5h6v16z"/>'),
+  check: svg('<path d="M5 12.500l4.500 4.500L19 7.500"/>'),
+  alert: svg('<path d="M12 7v6M12 17h.01"/>'),
+  x: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  bite: svg('<path d="M4 12h16M12 4v16" style="opacity:0"/><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'),
+  search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.500-3.500"/>'),
+  plate: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>')
+};
+
+// Sheet emojis -> icon key.
+const WARN = {
+  "🍭": {k:"sugar",  label:"High sugar",         why:"Sugar is a leading ingredient or the amount per serving is high. It spikes blood sugar and adds empty calories."},
+  "🧂": {k:"salt",   label:"High salt",          why:"Sodium is high for the serving. Regular excess raises blood pressure."},
+  "🌴": {k:"fats",   label:"Bad fats",           why:"Contains palm oil, hydrogenated or other refined fats that are high in saturated or trans fat."},
+  "🌾": {k:"flour",  label:"Refined flour",      why:"Made mainly with maida. The fibre is stripped out, so it digests fast and keeps you full for less time."},
+  "⚠":  {k:"additives", label:"Additives",       why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
+  "🎨": {k:"colours",label:"Artificial colour",  why:"Uses synthetic colours that add no nutrition and are best avoided, especially for children."},
+  "🧪": {k:"preserv",label:"Preservatives",      why:"Contains chemical preservatives to extend shelf life."},
+  "🏭": {k:"ultra",  label:"Ultra-processed",    why:"Industrially formulated from refined ingredients and additives, far from the original food."}
+};
+const TIERS = {
+  safe:  {n:1, word:"Safe",  sub:"Enjoy freely",        icon:"check"},
+  fine:  {n:2, word:"Fine",  sub:"In moderation",       icon:"check"},
+  limit: {n:3, word:"Limit", sub:"Watch how much",      icon:"alert"},
+  avoid: {n:4, word:"Avoid", sub:"Occasional treat only",icon:"x"}
+};
+
 let products = [];
 
 function parseCSV(text) {
-  const rows = [];
-  let row = [], field = "", inQuotes = false;
+  const rows = []; let row = [], field = "", inQuotes = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i], next = text[i + 1];
     if (inQuotes) {
@@ -558,175 +217,152 @@ function parseCSV(text) {
     .map(r => Object.fromEntries(headers.map((h, i) => [h, (r[i] || "").trim()])));
 }
 
-function tierClass(tier) {
-  const t = (tier || "").toLowerCase().trim();
-  return ["safe","fine","limit","avoid"].includes(t) ? t : "unknown";
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+const tierKey = t => { t = (t || "").toLowerCase().trim(); return TIERS[t] ? t : ""; };
+const parseWarnings = s => (s || "").replace(/\uFE0F/g, "").split(/\s+/).filter(w => WARN[w]);
+
+// ---------- COMPONENTS ----------
+function meterHTML(key) {
+  const n = key ? TIERS[key].n : 0;
+  return `<div class="meter" aria-hidden="true">${[1,2,3,4].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</div>`;
+}
+function verdictHTML(key) {
+  if (!key) return "";
+  const t = TIERS[key];
+  return `<div class="verdict">${meterHTML(key)}
+    <div class="verdict-word">${t.word}<small>${t.sub}</small></div>
+    <div class="verdict-badge">${ICONS[t.icon]}</div></div>`;
+}
+function warnsHTML(list) {
+  if (!list.length) return `<div class="warns"><div class="clean">${ICONS.check} No warnings flagged</div></div>`;
+  return `<div class="warns">${list.map(w => `<span class="wchip">${ICONS[WARN[w].k]}${WARN[w].label}</span>`).join("")}</div>`;
 }
 
-function buildBuyButtons(p) {
-  const safeName = (p.name || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
-  const safeBrand = (p.brand || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
-
+function cardHTML(p) {
+  const key = tierKey(p.tier), list = parseWarnings(p.warnings);
+  const img = p.image_url
+    ? `<img src="${escapeHTML(p.image_url)}" alt="" loading="lazy" onerror="this.remove()">` : ICONS.plate;
   return `
-    <div class="buy-row">
-      <button onclick="openBuyModal('${safeName}', '${safeBrand}')" class="buy-btn" style="background: #202124; color: white; border: none; cursor: pointer; padding: 8px 16px; font-size: 13px;">
-        Buy Now
-      </button>
+  <article class="card ${key}">
+    <div class="thumb">${img}</div>
+    <div class="head">
+      <h3 class="name">${escapeHTML(p.name || "Unnamed")}</h3>
+      <div class="brand">${escapeHTML(p.brand || "")}</div>
     </div>
-  `;
-}
-// --- Modal Logic ---
-function openBuyModal(name, brand) {
-  document.getElementById("modalProductName").innerText = name;
-  const query = encodeURIComponent(`${brand} ${name}`.trim());
-
-  document.getElementById("link-blinkit").href = `https://blinkit.com/s/?q=${query}`;
-  document.getElementById("link-zepto").href = `https://www.zeptonow.com/search?query=${query}`;
-  document.getElementById("link-instamart").href = `https://www.swiggy.com/instamart/search?custom_query=${query}`;
-  document.getElementById("link-bigbasket").href = `https://www.bigbasket.com/ps/?q=${query}`;
-  document.getElementById("link-jiomart").href = `https://www.jiomart.com/search/${query}`;
-  document.getElementById("link-amazon").href = `https://www.amazon.in/s?k=${query}`;
-  document.getElementById("link-flipkart").href = `https://www.flipkart.com/search?q=${query}`;
-
-  document.getElementById("buyModal").classList.add("active");
+    ${verdictHTML(key)}
+    ${warnsHTML(list)}
+    ${p.limit ? `<div class="limit-line">${ICONS.bite}<span>${escapeHTML(p.limit)}</span></div>` : ""}
+    <div class="actions">
+      <button class="btn" onclick="openDetails(${p._id})">Why?</button>
+      <button class="btn primary" onclick="openStores(${p._id})">Buy now</button>
+    </div>
+  </article>`;
 }
 
-function closeBuyModal() {
-  document.getElementById("buyModal").classList.remove("active");
-}
-
-document.getElementById("buyModal").addEventListener("click", (e) => {
-  if (e.target.id === "buyModal") closeBuyModal();
-});
 function render(list, query = "") {
-  const container = document.getElementById("results");
-  const stats = document.getElementById("stats");
-
+  const box = document.getElementById("results"), stats = document.getElementById("stats");
   if (!list.length) {
-    if (query) {
-      container.innerHTML = `
-        <div class="submit-card">
-          <span class="emoji">🔍</span>
-          <h3>"${escapeHTML(query)}" isn't in our database yet.</h3>
-          <p>Snap a photo of the ingredients label and submit it. We'll add it.</p>
-          <a href="${FORM_URL}" target="_blank" rel="noopener" class="submit-btn">Submit this product</a>
-        </div>
-      `;
-    } else {
-      container.innerHTML = '<p class="empty">No products found.</p>';
-    }
-    stats.textContent = "";
-    return;
+    box.innerHTML = query ? `
+      <div class="submit-card">
+        <div class="wi">${ICONS.search}</div>
+        <h3>"${escapeHTML(query)}" isn't in our database yet</h3>
+        <p>Snap a photo of the ingredients label and submit it. We'll add it.</p>
+        <a href="${FORM_URL}" target="_blank" rel="noopener">Submit this product</a>
+      </div>` : '<p class="empty">No products found.</p>';
+    stats.textContent = ""; return;
   }
-
   stats.textContent = `Showing ${list.length} of ${products.length} products`;
-
-  container.innerHTML = list.map(p => {
-    const tier = (p.tier || "").trim();
-    const warnings = (p.warnings || "").trim();
-    const limit = (p.limit || "").trim();
-
-    const tierHTML = tier ? `<div class="tier ${tierClass(tier)}">${escapeHTML(tier)}</div>` : "";
-    const warnHTML = warnings
-      ? `<div class="warnings">${warnings}</div>`
-      : `<div class="warnings safe">✅ No warnings flagged</div>`;
-    const limitHTML = limit ? `<div class="limit">${escapeHTML(limit)}</div>` : "";
-
-    const img = p.image_url
-      ? `<img src="${p.image_url}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-         <div class="card-img-placeholder" style="display:none;">🍽️</div>`
-      : `<div class="card-img-placeholder">🍽️</div>`;
-
-    return `
-      <div class="card">
-        ${img}
-        <div class="card-body">
-          <p class="name">${escapeHTML(p.name || "Unnamed")}</p>
-          <div class="meta">${escapeHTML(p.brand || "")}${p.brand && p.category ? " · " : ""}${escapeHTML(p.category || "")}</div>
-          ${tierHTML}
-          ${warnHTML}
-          ${limitHTML}
-          <div class="ingredients">${escapeHTML(p.ingredients_raw || "")}</div>
-          ${buildBuyButtons(p)}
-        </div>
-      </div>
-    `;
-  }).join("");
+  box.innerHTML = list.map(cardHTML).join("");
 }
 
-function escapeHTML(str) {
-  return String(str).replace(/[&<>"']/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[c]));
+function renderLegend() {
+  document.getElementById("legend").innerHTML = `
+    <h4>What the symbols mean</h4>
+    <div class="lgrid">${Object.values(WARN).map(w => `<div class="litem"><span class="wchip" style="padding:6px">${ICONS[w.k]}</span>${w.label}</div>`).join("")}</div>
+    <h4>What the meter means</h4>
+    <div class="lgrid">${Object.keys(TIERS).map(k => `<div class="litem card ${k}" style="all:unset;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)">${meterHTML(k).replace('class="meter"', `class="meter" style="--t:var(--${k})"`)}<span><b style="color:var(--ink)">${TIERS[k].word}</b> ${TIERS[k].sub}</span></div>`).join("")}</div>`;
 }
 
-// --- State management ---
-const homeEl = document.getElementById("home");
-const resultsPageEl = document.getElementById("results-page");
-const searchHome = document.getElementById("search-home");
-const searchTop = document.getElementById("search-top");
+// ---------- SHEET ----------
+const sheet = document.getElementById("sheet"), scrim = document.getElementById("scrim"), sbody = document.getElementById("sheet-body");
+function openSheet(html) { sbody.innerHTML = html; sheet.scrollTop = 0; sheet.classList.add("open"); scrim.classList.add("open"); }
+function closeSheet() { sheet.classList.remove("open"); scrim.classList.remove("open"); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 
-function goToResults(query) {
-  homeEl.classList.add("hidden");
-  resultsPageEl.classList.add("active");
-  searchTop.value = query;
-  filterAndRender(query);
+function openDetails(id) {
+  const p = products[id], key = tierKey(p.tier), list = parseWarnings(p.warnings);
+  const t = key ? TIERS[key] : null;
+  const whyHTML = list.length
+    ? list.map(w => `<div class="why"><div class="wi">${ICONS[WARN[w].k]}</div><div><b>${WARN[w].label}</b><span>${WARN[w].why}</span></div></div>`).join("")
+    : `<div class="why"><div class="wi" style="color:var(--safe)">${ICONS.check}</div><div><b>Nothing flagged</b><span>No sugar, salt, fat, refining or additive concerns were found on this label.</span></div></div>`;
+  openSheet(`
+    <h2>${escapeHTML(p.name)}</h2>
+    <div class="brand">${escapeHTML(p.brand || "")}</div>
+    <div class="card ${key}" style="box-shadow:none;border-left:0;padding:0;margin:0;display:block;background:none">
+      ${t ? `<div class="verdict" style="margin:0 0 4px">${meterHTML(key)}<div class="verdict-word">${t.word}<small>${t.sub}</small></div></div>` : ""}
+      ${p.limit ? `<div class="limit-line" style="margin-top:12px">${ICONS.bite}<span>${escapeHTML(p.limit)}</span></div>` : ""}
+    </div>
+    <h3>Why this rating</h3>${whyHTML}
+    <h3>Ingredients on the label</h3>
+    <div class="ing">${escapeHTML(p.ingredients_raw || "Ingredients not added yet.")}</div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Close</button><button class="btn primary" onclick="openStores(${id})">Buy now</button></div>`);
 }
 
+function openStores(id) {
+  const p = products[id], q = encodeURIComponent(`${p.brand || ""} ${p.name || ""}`.trim());
+  const stores = [
+    ["Blinkit", `https://blinkit.com/s/?q=${q}`],
+    ["Zepto", `https://www.zeptonow.com/search?query=${q}`],
+    ["Swiggy Instamart", `https://www.swiggy.com/instamart/search?custom_query=${q}`],
+    ["BigBasket", `https://www.bigbasket.com/ps/?q=${q}`],
+    ["JioMart", `https://www.jiomart.com/search/${q}`],
+    ["Amazon", `https://www.amazon.in/s?k=${q}`],
+    ["Flipkart", `https://www.flipkart.com/search?q=${q}`]
+  ];
+  openSheet(`<h2>${escapeHTML(p.name)}</h2><p class="sub">Choose a store to search for this product</p>
+    ${stores.map(([n, u]) => `<a class="store" href="${u}" target="_blank" rel="noopener">${n}<span>↗</span></a>`).join("")}`);
+}
+
+// ---------- STATE ----------
+const homeEl = document.getElementById("home"), resultsEl = document.getElementById("results-page");
+const searchHome = document.getElementById("search-home"), searchTop = document.getElementById("search-top");
+
+function goToResults(q) {
+  homeEl.classList.add("hidden"); resultsEl.classList.add("active");
+  searchTop.value = q; filterAndRender(q);
+  searchTop.focus(); searchTop.setSelectionRange(q.length, q.length);
+}
 function goHome() {
-  resultsPageEl.classList.remove("active");
-  homeEl.classList.remove("hidden");
-  searchTop.value = "";
-  searchHome.value = "";
-  searchHome.focus();
+  resultsEl.classList.remove("active"); homeEl.classList.remove("hidden");
+  searchTop.value = ""; searchHome.value = ""; searchHome.focus();
 }
-
 function filterAndRender(q) {
   if (!q) return render(products);
-  const query = q.toLowerCase().trim();
-  const filtered = products.filter(p =>
-    `${p.name} ${p.brand} ${p.barcode} ${p.category}`.toLowerCase().includes(query)
-  );
-  render(filtered, q.trim());
+  const s = q.toLowerCase().trim();
+  render(products.filter(p => `${p.name} ${p.brand} ${p.barcode} ${p.category}`.toLowerCase().includes(s)), q.trim());
 }
 
-// --- Events ---
-searchHome.addEventListener("input", e => {
-  const q = e.target.value.trim();
-  if (q.length >= 2) goToResults(q);
-});
+searchHome.addEventListener("input", e => { const q = e.target.value.trim(); if (q.length >= 2) goToResults(q); });
+searchHome.addEventListener("keydown", e => { if (e.key === "Enter") { const q = e.target.value.trim(); if (q) goToResults(q); } });
+searchTop.addEventListener("input", e => filterAndRender(e.target.value.trim()));
 
-searchHome.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    const q = e.target.value.trim();
-    if (q.length > 0) goToResults(q);
-  }
-});
-
-searchTop.addEventListener("input", e => {
-  filterAndRender(e.target.value.trim());
-});
-
-// --- Load ---
 async function loadProducts() {
-  const container = document.getElementById("results");
-  container.innerHTML = '<p class="loading">Loading…</p>';
-
+  const box = document.getElementById("results");
+  box.innerHTML = '<p class="loading">Loading…</p>';
   try {
     const res = await fetch(SHEET_CSV_URL);
     if (!res.ok) throw new Error("HTTP " + res.status);
-    const text = await res.text();
-    products = parseCSV(text);
-    if (resultsPageEl.classList.contains("active")) {
-      filterAndRender(searchTop.value.trim());
-    }
+    products = parseCSV(await res.text());
+    products.forEach((p, i) => p._id = i);
+    if (resultsEl.classList.contains("active")) filterAndRender(searchTop.value.trim());
   } catch (err) {
-    container.innerHTML = `<div class="error">⚠️ Could not load: ${escapeHTML(err.message)}</div>`;
+    box.innerHTML = `<div class="error">Could not load products: ${escapeHTML(err.message)}</div>`;
   }
 }
-
+renderLegend();
 loadProducts();
 </script>
-
 </body>
 </html>
