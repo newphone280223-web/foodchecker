@@ -156,10 +156,9 @@ footer{text-align:center;padding:28px 20px 48px;color:#8a9790;font-size:12px}
 // ============================================================
 const SHEET_CSV_URL = "https://script.google.com/macros/s/AKfycbxbRzjmTnXM1ES13A4U-ohH7PXD4EuBWp9XwqHLZwM2PCbyo1LGeBxaFxiPLlEO3bzW8w/exec";
 const FORM_URL = "https://forms.gle/SvL44DLJvkVobtud8";
-const PAGE_SIZE = 20;   // results shown at a time (Scales perfectly to 2k+)
+const PAGE_SIZE = 20;
 // ============================================================
 
-// ---------- SYMBOLS + METER ----------
 const WARN = {
   "🍭": {k:"sugar", label:"High sugar",       alias:["sugar"],        why:"Sugar is a leading ingredient or the amount per serving is high. It spikes blood sugar and adds empty calories."},
   "🧂": {k:"salt", label:"High salt",        alias:["salt"],         why:"Sodium is high for the serving. Regular excess raises blood pressure."},
@@ -196,43 +195,21 @@ const ICONS = {
   plate: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>')
 };
 
-// ---------- DATA LAYER ----------
 let products = [], shown = [], visible = PAGE_SIZE;
-
-function parseCSV(text) {
-  const rows = []; let row = [], field = "", inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i], next = text[i + 1];
-    if (inQuotes) {
-      if (c === '"' && next === '"') { field += '"'; i++; }
-      else if (c === '"') inQuotes = false;
-      else field += c;
-    } else {
-      if (c === '"') inQuotes = true;
-      else if (c === ',') { row.push(field); field = ""; }
-      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ""; }
-      else if (c === '\r') {}
-      else field += c;
-    }
-  }
-  if (field || row.length) { row.push(field); rows.push(row); }
-  if (!rows.length) return [];
-  const headers = rows.shift().map(h => h.trim().toLowerCase());
-  return rows.filter(r => r.some(c => (c || "").trim() !== ""))
-    .map(r => Object.fromEntries(headers.map((h, i) => [h, (r[i] || "").trim()])));
-}
 
 function escapeHTML(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
 // 🟢 BULLETPROOF WARNING PARSER
-// This catches the emojis flawlessly, stripping out Google Sheet's hidden characters
 function parseWarnings(s) {
   if (!s) return [];
   let clean = String(s).replace(/\uFE0F/g, "").toLowerCase();
-  let out = [];
   
+  // Remove tier dots so they don't get parsed as warnings
+  clean = clean.replace(/🟢|🟡|🟠|🔴/g, ""); 
+  
+  let out = [];
   for (const e in WARN) {
     if (clean.includes(e.toLowerCase()) || WARN[e].alias.some(a => new RegExp("\\b" + a + "\\b").test(clean))) {
       if (!out.includes(e)) out.push(e);
@@ -251,7 +228,9 @@ function tierFromText(t) {
 }
 
 function analyse(p) {
-  return { list: parseWarnings(p.warnings), key: tierFromText(p.tier), advice: (p.limit || "").trim() };
+  // Check BOTH the tier column AND the warnings column for the tier emoji
+  let tierString = String(p.tier || "") + String(p.warnings || "");
+  return { list: parseWarnings(p.warnings), key: tierFromText(tierString), advice: (p.limit || "").trim() };
 }
 
 function prepare(rows) {
@@ -285,7 +264,7 @@ function warnsHTML(list) {
 function cardHTML(p) {
   try {
     const a = p._a;
-       const img = p.image_url
+    const img = p.image_url
       ? `<img src="${escapeHTML(p.image_url)}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='${ICONS.plate}';">` : ICONS.plate;
     return `
     <article class="card ${a.key}">
@@ -346,6 +325,7 @@ function openDetails(id) {
   const whyHTML = a.list.length
     ? a.list.map(e => `<div class="why"><div class="wi">${ICONS[WARN[e].k]}</div><div><b>${WARN[e].label}</b><span>${WARN[e].why}</span></div></div>`).join("")
     : `<div class="why"><div class="wi" style="color:var(--safe)">${ICONS.check}</div><div><b>Nothing flagged</b><span>No sugar, salt, fat, refining or additive concerns were found for this product.</span></div></div>`;
+  
   openSheet(`
     <h2>${escapeHTML(p.name)}</h2>
     <div class="brand">${escapeHTML(p.brand)}</div>
@@ -412,10 +392,7 @@ async function loadProducts() {
     const res = await fetch(SHEET_CSV_URL);
     if (!res.ok) throw new Error("HTTP " + res.status);
     
-    // Fetch as JSON instead of CSV
     const jsonData = await res.json();
-    
-    // Pass data directly to our prepare function
     products = prepare(jsonData);
     
     if (resultsEl.classList.contains("active")) {
