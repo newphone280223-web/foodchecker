@@ -154,7 +154,7 @@ footer{text-align:center;padding:28px 20px 48px;color:#8a9790;font-size:12px}
 
 <script>
 // ============================================================
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTAIDSLnIsDSHF55vZI15vM3ByLl6U4UnNapRT1UdAKPkM7H3V1OFuLuhOPoAVnx4-F0P5wBzVY0db4/pub?gid=0&single=true&output=csv";
+const SHEET_CSV_URL = "https://script.google.com/macros/s/AKfycbxbRzjmTnXM1ES13A4U-ohH7PXD4EuBWp9XwqHLZwM2PCbyo1LGeBxaFxiPLlEO3bzW8w/exec";
 const FORM_URL = "https://forms.gle/SvL44DLJvkVobtud8";
 const PAGE_SIZE = 20;   // results shown at a time (Scales perfectly to 2k+)
 // ============================================================
@@ -405,21 +405,27 @@ searchTop.addEventListener("input", debounce(e => filterAndRender(e.target.value
 
 // ---------- LOAD ----------
 async function loadProducts() {
-  const box = document.getElementById("results"), KEY = "fwc_csv";
+  const box = document.getElementById("results");
   box.innerHTML = '<p class="loading">Loading…</p>';
-  let text = "";
+  
   try {
     const res = await fetch(SHEET_CSV_URL);
     if (!res.ok) throw new Error("HTTP " + res.status);
-    text = await res.text();
-    try { localStorage.setItem(KEY, text); } catch (e) {}
+    
+    // Fetch as JSON instead of CSV
+    const jsonData = await res.json();
+    
+    // Pass data directly to our prepare function
+    products = prepare(jsonData);
+    
+    if (resultsEl.classList.contains("active")) {
+      filterAndRender(searchTop.value.trim());
+    } else {
+      box.innerHTML = "";
+    }
   } catch (err) {
-    try { text = localStorage.getItem(KEY) || ""; } catch (e) {}
-    if (!text) { box.innerHTML = `<div class="error">Could not load products: ${escapeHTML(err.message)}</div>`; return; }
+    box.innerHTML = `<div class="error">Could not load products: ${escapeHTML(err.message)}</div>`;
   }
-  products = prepare(parseCSV(text));
-  if (resultsEl.classList.contains("active")) filterAndRender(searchTop.value.trim());
-  else box.innerHTML = "";
 }
 
 renderLegend();
