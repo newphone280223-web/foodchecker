@@ -209,17 +209,19 @@ function parseData(rawWarn, rawTier) {
   else if (combined.includes("🟡") || combined.toLowerCase().includes("fine")) key = "fine";
   else if (combined.includes("🟢") || combined.toLowerCase().includes("safe")) key = "safe";
 
-  // 2. Find the Warnings (split by Array.from to handle complex emojis)
+   // 2. Find the Warnings (cleaned of invisible characters)
   let list = [];
-  const chars = Array.from(warnStr.replace(/\uFE0F/g, ""));
-  
+  let cleanWarnStr = warnStr.replace(/\uFE0F/g, ""); // Remove the invisible variation selector
+
   for (const e in WARN) {
-    // Check if the specific emoji is in the string
-    if (warnStr.includes(e)) {
+    let cleanE = e.replace(/\uFE0F/g, ""); // Clean the dictionary emoji too
+    
+    // Check if the clean string has the clean emoji
+    if (cleanWarnStr.includes(cleanE)) {
+      // Only push if it's not already in the list
       if (!list.includes(e)) list.push(e);
     }
   }
-  
   return { key, list, advice: (rawTier ? "" : "") }; // We will set advice later
 }
 
