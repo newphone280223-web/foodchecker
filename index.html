@@ -57,7 +57,7 @@ button{font-family:inherit;cursor:pointer}
 .brand{font-size:13px;color:var(--muted);margin-top:2px}
 .verdict{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:6px}
 
-/* TIER METER: the signature element */
+/* TIER METER */
 .meter{display:flex;gap:4px;flex-shrink:0}
 .meter i{width:26px;height:8px;border-radius:4px;background:var(--track)}
 .meter i.on{background:var(--t)}
@@ -155,7 +155,7 @@ const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTAIDSLnI
 const FORM_URL = "https://forms.gle/SvL44DLJvkVobtud8";
 // ============================================================
 
-// ---------- ICONS (24x24, stroke, currentColor) ----------
+// ---------- ICONS ----------
 const svg = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICONS = {
   sugar: svg('<path d="M12 3l7 4v8l-7 4-7-4V7z"/><path d="M5 7l7 4 7-4M12 11v8"/>'),
@@ -174,13 +174,13 @@ const ICONS = {
   plate: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>')
 };
 
-// Sheet emojis -> icon key.
 const WARN = {
   "🍭": {k:"sugar",  label:"High sugar",         why:"Sugar is a leading ingredient or the amount per serving is high. It spikes blood sugar and adds empty calories."},
   "🧂": {k:"salt",   label:"High salt",          why:"Sodium is high for the serving. Regular excess raises blood pressure."},
   "🌴": {k:"fats",   label:"Bad fats",           why:"Contains palm oil, hydrogenated or other refined fats that are high in saturated or trans fat."},
   "🌾": {k:"flour",  label:"Refined flour",      why:"Made mainly with maida. The fibre is stripped out, so it digests fast and keeps you full for less time."},
   "⚠":  {k:"additives", label:"Additives",       why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
+  "⚠️": {k:"additives", label:"Additives",       why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
   "🎨": {k:"colours",label:"Artificial colour",  why:"Uses synthetic colours that add no nutrition and are best avoided, especially for children."},
   "🧪": {k:"preserv",label:"Preservatives",      why:"Contains chemical preservatives to extend shelf life."},
   "🏭": {k:"ultra",  label:"Ultra-processed",    why:"Industrially formulated from refined ingredients and additives, far from the original food."}
@@ -221,7 +221,33 @@ function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 const tierKey = t => { t = (t || "").toLowerCase().trim(); return TIERS[t] ? t : ""; };
-const parseWarnings = s => (s || "").replace(/\uFE0F/g, "").split(/\s+/).filter(w => WARN[w]);
+
+// 🔥 BULLETPROOF WARNING PARSER
+const parseWarnings = s => {
+  if (!s) return [];
+  // 1. Remove variation selector (invisible character) and split by any whitespace
+  let clean = s.replace(/\uFE0F/g, "").split(/\s+/);
+  let valid = [];
+  
+  clean.forEach(w => {
+    let found = WARN[w];
+    // 2. If not found exactly, check for known unicode/emoji variants
+    if (!found) {
+      if (w.includes("🍭")) found = WARN["🍭"];
+      if (w.includes("🧂")) found = WARN["🧂"];
+      if (w.includes("🌴")) found = WARN["🌴"];
+      if (w.includes("🌾")) found = WARN["🌾"];
+      if (w.includes("⚠")) found = WARN["⚠"];
+      if (w.includes("🎨")) found = WARN["🎨"];
+      if (w.includes("🧪")) found = WARN["🧪"];
+      if (w.includes("🏭")) found = WARN["🏭"];
+    }
+    if (found && !valid.includes(found)) valid.push(found);
+  });
+  
+  // Return array of keys (e.g., ["salt"])
+  return valid.map(v => Object.keys(WARN).find(k => WARN[k] === v));
+};
 
 // ---------- COMPONENTS ----------
 function meterHTML(key) {
