@@ -347,7 +347,98 @@ footer {
   color: #80868b;
   font-size: 12px;
 }
+/* ---------- BUY MODAL ---------- */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.active { display: flex; }
 
+.modal-content {
+  background: #fff;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  position: relative;
+  animation: modalPop 0.2s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@keyframes modalPop {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #f1f3f4;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  color: #5f6368;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: #e8eaed; }
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  padding-right: 32px;
+}
+.modal-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.store-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.store-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 14px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.store-btn:hover {
+  background: var(--hover);
+  border-color: #ccc;
+}
+.store-btn span.icon {
+  font-size: 16px;
+  margin-right: 8px;
+}
+.store-btn span.arrow {
+  color: #999;
+  font-size: 16px;
+}
 /* ---------- MOBILE ---------- */
 @media (max-width: 500px) {
   .home h1 { font-size: 26px; }
@@ -414,8 +505,46 @@ footer {
       </div>
     </div>
   </section>
-
-  <footer>Built with ❤️ · We review every submission personally</footer>
+<!-- BUY POPUP MODAL -->
+<div class="modal-overlay" id="buyModal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeBuyModal()">✕</button>
+    <div class="modal-title" id="modalProductName">Buy Product</div>
+    <div class="modal-sub">Choose a store to search for this product</div>
+    
+    <div class="store-list">
+      <a href="#" id="link-blinkit" target="_blank" rel="noopener" class="store-btn">
+        <div><span class="icon">⚡</span> Blinkit</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="#" id="link-zepto" target="_blank" rel="noopener" class="store-btn">
+        <div><span class="icon">🟣</span> Zepto</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="#" id="link-instamart" target="_blank" rel="noopener" class="store-btn">
+        <div><span class="icon">🟠</span> Swiggy Instamart</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="#" id="link-bigbasket" target="_blank" rel="noopener" class="store-btn">
+        <div><span class="icon">🟢</span> BigBasket</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="#" id="link-jiomart" target="_blank" rel="noopener" class="store-btn">
+        <div><span class="icon">🔵</span> JioMart</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="#" id="link-amazon" target="_blank" rel="noopener" class="store-btn">
+        <div><span class="icon">🛒</span> Amazon</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="#" id="link-flipkart" target="_blank" rel="noopener" class="store-btn">
+        <div><span class="icon">🛍️</span> Flipkart</div>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </div>
+</div>
+  <footer>Your Health Matters</footer>
 </div>
 
 <script>
@@ -456,14 +585,41 @@ function tierClass(tier) {
 }
 
 function buildBuyButtons(p) {
-  const query = encodeURIComponent(`${p.brand || ""} ${p.name || ""}`.trim());
-  const direct = (p.blinkit_url || "").trim();
-  const url = direct || (query ? `https://blinkit.com/s/?q=${query}` : "");
-  if (!url) return "";
-  const label = direct ? "Buy on Blinkit" : "Search on Blinkit";
-  return `<div class="buy-row"><a href="${url}" target="_blank" rel="noopener" class="buy-btn blinkit">⚡ ${label}</a></div>`;
+  const safeName = (p.name || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+  const safeBrand = (p.brand || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+  return `
+    <div class="buy-row">
+      <button onclick="openBuyModal('${safeName}', '${safeBrand}')" class="buy-btn" style="background: #202124; color: white; border: none; cursor: pointer;">
+        🛒 Where to Buy
+      </button>
+    </div>
+  `;
 }
 
+// --- Modal Logic ---
+function openBuyModal(name, brand) {
+  document.getElementById("modalProductName").innerText = name;
+  const query = encodeURIComponent(`${brand} ${name}`.trim());
+
+  document.getElementById("link-blinkit").href = `https://blinkit.com/s/?q=${query}`;
+  document.getElementById("link-zepto").href = `https://www.zeptonow.com/search?query=${query}`;
+  document.getElementById("link-instamart").href = `https://www.swiggy.com/instamart/search?custom_query=${query}`;
+  document.getElementById("link-bigbasket").href = `https://www.bigbasket.com/ps/?q=${query}`;
+  document.getElementById("link-jiomart").href = `https://www.jiomart.com/search/${query}`;
+  document.getElementById("link-amazon").href = `https://www.amazon.in/s?k=${query}`;
+  document.getElementById("link-flipkart").href = `https://www.flipkart.com/search?q=${query}`;
+
+  document.getElementById("buyModal").classList.add("active");
+}
+
+function closeBuyModal() {
+  document.getElementById("buyModal").classList.remove("active");
+}
+
+document.getElementById("buyModal").addEventListener("click", (e) => {
+  if (e.target.id === "buyModal") closeBuyModal();
+});
 function render(list, query = "") {
   const container = document.getElementById("results");
   const stats = document.getElementById("stats");
