@@ -99,7 +99,7 @@ button{font-family:inherit;cursor:pointer}
 .store:hover{border-color:var(--ink)}
 .sub{font-size:13px;color:var(--muted);margin-bottom:16px}
 
-/* STATES + LEGEND */
+/* STATES */
 .empty,.loading{text-align:center;color:var(--muted);padding:60px 20px;font-size:14px}
 .error{background:var(--avoid-bg);color:#8a1c14;padding:14px 16px;border-radius:var(--r-md);font-size:13px;margin-bottom:16px}
 .submit-card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);text-align:center;padding:44px 24px}
@@ -107,14 +107,7 @@ button{font-family:inherit;cursor:pointer}
 .submit-card h3{font-size:18px;margin-bottom:8px}
 .submit-card p{color:var(--muted);font-size:14px;max-width:340px;margin:0 auto 22px}
 .submit-card a{display:inline-block;background:var(--ink);color:#fff;padding:13px 24px;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px}
-.legend{margin-top:36px;background:var(--card);border-radius:var(--r-lg);padding:20px;box-shadow:var(--shadow)}
-.legend h4{font-size:14px;margin-bottom:12px}
-.legend .note{font-size:12.5px;color:var(--muted);margin:-4px 0 14px}
-.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 14px;margin-bottom:22px}
-.lgrid:last-child{margin-bottom:0}
-.litem{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
-.litem .meter i{width:12px;height:6px}
-.litem b{color:var(--ink)}
+
 footer{text-align:center;padding:28px 20px 48px;color:#8a9790;font-size:12px}
 @media (max-width:420px){.card{grid-template-columns:72px 1fr}.thumb{width:72px;height:72px}.name{font-size:16px}.meter i{width:22px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -143,7 +136,6 @@ footer{text-align:center;padding:28px 20px 48px;color:#8a9790;font-size:12px}
     </div>
     <div class="stats" id="stats"></div>
     <div id="results"></div>
-    <div class="legend" id="legend"></div>
   </section>
 
   <footer>Your health matters.</footer>
@@ -160,15 +152,15 @@ const PAGE_SIZE = 20;
 // ============================================================
 
 const WARN = {
-  "🍭": {k:"sugar", label:"High sugar",       alias:["sugar"],        why:"Sugar is a leading ingredient or the amount per serving is high. It spikes blood sugar and adds empty calories."},
-  "🧂": {k:"salt", label:"High salt",        alias:["salt"],         why:"Sodium is high for the serving. Regular excess raises blood pressure."},
-  "🌴": {k:"fats", label:"Bad fats",         alias:["fats","fat","palm"], why:"Contains palm oil, hydrogenated or other refined fats that are high in saturated or trans fat."},
-  "🌾": {k:"flour", label:"Refined flour",    alias:["flour","maida"], why:"Made mainly with maida. The fibre is stripped out, so it digests fast and keeps you full for less time."},
-  "⚠️": {k:"additives", label:"Additives",        alias:["additives"],    why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
-  "⚠":  {k:"additives", label:"Additives",        alias:["additives"],    why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
-  "🎨": {k:"colours", label:"Artificial colour",alias:["colours","colors","colour","color"], why:"Uses synthetic colours that add no nutrition and are best avoided, especially for children."},
-  "🧪": {k:"preserv", label:"Preservatives",    alias:["preservatives","preservative"], why:"Contains chemical preservatives to extend shelf life."},
-  "🏭": {k:"ultra", label:"Ultra-processed",  alias:["ultra"],        why:"Industrially formulated from refined ingredients and additives, far from the original food."}
+  "🍭": {k:"sugar", label:"High sugar",       why:"Sugar is a leading ingredient or the amount per serving is high. It spikes blood sugar and adds empty calories."},
+  "🧂": {k:"salt", label:"High salt",        why:"Sodium is high for the serving. Regular excess raises blood pressure."},
+  "🌴": {k:"fats", label:"Bad fats",         why:"Contains palm oil, hydrogenated or other refined fats that are high in saturated or trans fat."},
+  "🌾": {k:"flour", label:"Refined flour",    why:"Made mainly with maida. The fibre is stripped out, so it digests fast and keeps you full for less time."},
+  "⚠️": {k:"additives", label:"Additives",        why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
+  "⚠":  {k:"additives", label:"Additives",        why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
+  "🎨": {k:"colours", label:"Artificial colour",why:"Uses synthetic colours that add no nutrition and are best avoided, especially for children."},
+  "🧪": {k:"preserv", label:"Preservatives",    why:"Contains chemical preservatives to extend shelf life."},
+  "🏭": {k:"ultra", label:"Ultra-processed",  why:"Industrially formulated from refined ingredients and additives, far from the original food."}
 };
 const TIERS = {
   safe:  {n:1, word:"Safe",  sub:"Enjoy freely",          icon:"check"},
@@ -201,42 +193,49 @@ function escapeHTML(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-// 🟢 BULLETPROOF WARNING PARSER
-function parseWarnings(s) {
-  if (!s) return [];
-  let clean = String(s).replace(/\uFE0F/g, "").toLowerCase();
+// 🟢 THE ULTIMATE EMOJI PARSER
+// This splits the string into individual characters to find exact emoji matches, ignoring hidden spaces.
+function parseData(rawWarn, rawTier) {
+  const warnStr = String(rawWarn || "");
+  const tierStr = String(rawTier || "");
   
-  // Remove tier dots so they don't get parsed as warnings
-  clean = clean.replace(/🟢|🟡|🟠|🔴/g, ""); 
+  // Combine both strings to find the tier, just in case the AI put the tier dot in the warnings column.
+  const combined = (warnStr + " " + tierStr).replace(/\uFE0F/g, ""); 
   
-  let out = [];
+  // 1. Find the Tier
+  let key = "";
+  if (combined.includes("🔴") || combined.toLowerCase().includes("avoid")) key = "avoid";
+  else if (combined.includes("🟠") || combined.toLowerCase().includes("limit")) key = "limit";
+  else if (combined.includes("🟡") || combined.toLowerCase().includes("fine")) key = "fine";
+  else if (combined.includes("🟢") || combined.toLowerCase().includes("safe")) key = "safe";
+
+  // 2. Find the Warnings (split by Array.from to handle complex emojis)
+  let list = [];
+  const chars = Array.from(warnStr.replace(/\uFE0F/g, ""));
+  
   for (const e in WARN) {
-    if (clean.includes(e.toLowerCase()) || WARN[e].alias.some(a => new RegExp("\\b" + a + "\\b").test(clean))) {
-      if (!out.includes(e)) out.push(e);
+    // Check if the specific emoji is in the string
+    if (warnStr.includes(e)) {
+      if (!list.includes(e)) list.push(e);
     }
   }
-  return out;
-}
-
-function tierFromText(t) {
-  t = String(t || "").toLowerCase();
-  const word = ["avoid", "limit", "fine", "safe"].find(k => t.includes(k));
-  if (word) return word;
-  const dot = {"🔴":"avoid", "🟠":"limit", "🟡":"fine", "🟢":"safe"};
-  const e = Object.keys(dot).find(d => t.includes(d));
-  return e ? dot[e] : "";
-}
-
-function analyse(p) {
-  // Check BOTH the tier column AND the warnings column for the tier emoji
-  let tierString = String(p.tier || "") + String(p.warnings || "");
-  return { list: parseWarnings(p.warnings), key: tierFromText(tierString), advice: (p.limit || "").trim() };
+  
+  return { key, list, advice: (rawTier ? "" : "") }; // We will set advice later
 }
 
 function prepare(rows) {
   return rows.map((p, i) => {
     p._id = i;
-    try { p._a = analyse(p); } catch (e) { p._a = { list: [], key: "", advice: "" }; }
+    try { 
+      const parsed = parseData(p.warnings, p.tier);
+      p._a = { 
+        key: parsed.key, 
+        list: parsed.list, 
+        advice: (p.limit || "").trim() 
+      }; 
+    } catch (e) { 
+      p._a = { list: [], key: "", advice: "" }; 
+    }
     p._s = `${p.name} ${p.brand} ${p.category} ${p.barcode}`.toLowerCase();
     return p;
   });
@@ -303,15 +302,6 @@ function render(query = "") {
 }
 
 function showMore() { visible += PAGE_SIZE; render(searchTop.value.trim()); }
-
-function renderLegend() {
-  document.getElementById("legend").innerHTML = `
-    <h4>What the symbols mean</h4>
-    <div class="lgrid">${Object.values(WARN).map(w => `<div class="litem"><span class="wchip" style="padding:6px">${ICONS[w.k]}</span>${w.label}</div>`).join("")}</div>
-    <h4>What the meter means</h4>
-    <p class="note">The meter is the overall rating for each product.</p>
-    <div class="lgrid">${Object.keys(TIERS).map(k => `<div class="litem" style="--t:var(--${k})">${meterHTML(k)}<span><b>${TIERS[k].word}</b> ${TIERS[k].sub}</span></div>`).join("")}</div>`;
-}
 
 // ---------- SHEET MODALS ----------
 const sheet = document.getElementById("sheet"), scrim = document.getElementById("scrim"), sbody = document.getElementById("sheet-body");
@@ -405,7 +395,6 @@ async function loadProducts() {
   }
 }
 
-renderLegend();
 loadProducts();
 </script>
 </body>
