@@ -77,12 +77,13 @@ button{font-family:inherit;cursor:pointer}
 .btn{flex:1;height:44px;border-radius:22px;font-size:14px;font-weight:700;border:1.5px solid var(--ink);background:transparent;color:var(--ink)}
 .btn.primary{background:var(--ink);color:#fff}
 .btn:active{transform:scale(.98)}
+.more{display:block;width:100%;margin:6px 0 10px;height:48px;border-radius:24px;border:1.5px solid var(--line);background:var(--card);font-size:14px;font-weight:700;color:var(--ink)}
 
 /* SHEET */
 .scrim{position:fixed;inset:0;background:rgba(10,18,14,.45);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
 .scrim.open{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:50%;bottom:0;z-index:101;width:100%;max-width:660px;max-height:88vh;overflow-y:auto;background:var(--card);border-radius:28px 28px 0 0;padding:10px 22px 28px;transform:translate(-50%,105%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
-.sheet.open{transform:translate(-50%,0)}
+.sheet{position:fixed;left:50%;bottom:0;z-index:101;width:100%;max-width:660px;max-height:88vh;overflow-y:auto;background:var(--card);border-radius:28px 28px 0 0;padding:10px 22px 28px;transform:translate(-50%,105%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility .28s}
+.sheet.open{transform:translate(-50%,0);visibility:visible}
 .grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 16px}
 .sheet h2{font-size:21px;letter-spacing:-.3px;padding-right:8px}
 .sheet .brand{margin-bottom:14px}
@@ -108,10 +109,12 @@ button{font-family:inherit;cursor:pointer}
 .submit-card a{display:inline-block;background:var(--ink);color:#fff;padding:13px 24px;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px}
 .legend{margin-top:36px;background:var(--card);border-radius:var(--r-lg);padding:20px;box-shadow:var(--shadow)}
 .legend h4{font-size:14px;margin-bottom:12px}
+.legend .note{font-size:12.5px;color:var(--muted);margin:-4px 0 14px}
 .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 14px;margin-bottom:22px}
 .lgrid:last-child{margin-bottom:0}
 .litem{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
 .litem .meter i{width:12px;height:6px}
+.litem b{color:var(--ink)}
 footer{text-align:center;padding:28px 20px 48px;color:#8a9790;font-size:12px}
 @media (max-width:420px){.card{grid-template-columns:72px 1fr}.thumb{width:72px;height:72px}.name{font-size:16px}.meter i{width:22px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -153,46 +156,48 @@ footer{text-align:center;padding:28px 20px 48px;color:#8a9790;font-size:12px}
 // ============================================================
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTAIDSLnIsDSHF55vZI15vM3ByLl6U4UnNapRT1UdAKPkM7H3V1OFuLuhOPoAVnx4-F0P5wBzVY0db4/pub?gid=0&single=true&output=csv";
 const FORM_URL = "https://forms.gle/SvL44DLJvkVobtud8";
+const PAGE_SIZE = 20;   // results shown at a time (Scales perfectly to 2k+)
 // ============================================================
 
-// ---------- ICONS ----------
+// ---------- SYMBOLS + METER ----------
+const WARN = {
+  "🍭": {k:"sugar", label:"High sugar",       alias:["sugar"],        why:"Sugar is a leading ingredient or the amount per serving is high. It spikes blood sugar and adds empty calories."},
+  "🧂": {k:"salt", label:"High salt",        alias:["salt"],         why:"Sodium is high for the serving. Regular excess raises blood pressure."},
+  "🌴": {k:"fats", label:"Bad fats",         alias:["fats","fat","palm"], why:"Contains palm oil, hydrogenated or other refined fats that are high in saturated or trans fat."},
+  "🌾": {k:"flour", label:"Refined flour",    alias:["flour","maida"], why:"Made mainly with maida. The fibre is stripped out, so it digests fast and keeps you full for less time."},
+  "⚠️": {k:"additives", label:"Additives",        alias:["additives"],    why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
+  "⚠":  {k:"additives", label:"Additives",        alias:["additives"],    why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
+  "🎨": {k:"colours", label:"Artificial colour",alias:["colours","colors","colour","color"], why:"Uses synthetic colours that add no nutrition and are best avoided, especially for children."},
+  "🧪": {k:"preserv", label:"Preservatives",    alias:["preservatives","preservative"], why:"Contains chemical preservatives to extend shelf life."},
+  "🏭": {k:"ultra", label:"Ultra-processed",  alias:["ultra"],        why:"Industrially formulated from refined ingredients and additives, far from the original food."}
+};
+const TIERS = {
+  safe:  {n:1, word:"Safe",  sub:"Enjoy freely",          icon:"check"},
+  fine:  {n:2, word:"Fine",  sub:"In moderation",         icon:"check"},
+  limit: {n:3, word:"Limit", sub:"Watch how much",        icon:"alert"},
+  avoid: {n:4, word:"Avoid", sub:"Occasional treat only", icon:"x"}
+};
+
 const svg = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICONS = {
   sugar: svg('<path d="M12 3l7 4v8l-7 4-7-4V7z"/><path d="M5 7l7 4 7-4M12 11v8"/>'),
   salt: svg('<path d="M9 3h6v3H9zM8 6h8l1 14a1 1 0 01-1 1H8a1 1 0 01-1-1z"/><circle cx="12" cy="12" r=".6"/><circle cx="10" cy="15.5" r=".6"/><circle cx="14" cy="15.5" r=".6"/>'),
   fats: svg('<path d="M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z"/><path d="M9 15a3 3 0 003 3"/>'),
-  flour: svg('<path d="M12 21V9M12 9c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4zM12 9c2.5 0 4-1.5 4-4-2.500 0-4 1.500-4 4zM12 15c-2.5 0-4-1.5-4-4M12 15c2.5 0 4-1.5 4-4"/>'),
-  additives: svg('<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 8.500v4.500"/><circle cx="12" cy="16.200" r=".5"/>'),
-  colours: svg('<path d="M12 3a9 9 0 100 18c1.400 0 2-1 1.500-2-.6-1.200.2-2.500 1.600-2.500H17a4 4 0 004-4c0-5-4-9.500-9-9.500z"/><circle cx="8" cy="11" r=".7"/><circle cx="12" cy="7.500" r=".7"/><circle cx="16" cy="9.500" r=".7"/>'),
-  preserv: svg('<circle cx="12" cy="13.500" r="7.500"/><path d="M12 9.500v4l2.500 2M9.500 3h5"/>'),
-  ultra: svg('<path d="M3 21V12l6 3.500V12l6 3.500V5h6v16z"/>'),
-  check: svg('<path d="M5 12.500l4.500 4.500L19 7.500"/>'),
+  flour: svg('<path d="M12 21V9M12 9c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4zM12 9c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4zM12 15c-2.5 0-4-1.5-4-4M12 15c2.5 0 4-1.5 4-4"/>'),
+  additives: svg('<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 8.5v4.5"/><circle cx="12" cy="16.2" r=".5"/>'),
+  colours: svg('<path d="M12 3a9 9 0 100 18c1.4 0 2-1 1.5-2-.6-1.2.2-2.5 1.6-2.5H17a4 4 0 004-4c0-5-4-9.5-9-9.5z"/><circle cx="8" cy="11" r=".7"/><circle cx="12" cy="7.5" r=".7"/><circle cx="16" cy="9.5" r=".7"/>'),
+  preserv: svg('<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 3h5"/>'),
+  ultra: svg('<path d="M3 21V12l6 3.5V12l6 3.5V5h6v16z"/>'),
+  check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
   alert: svg('<path d="M12 7v6M12 17h.01"/>'),
   x: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
-  bite: svg('<path d="M4 12h16M12 4v16" style="opacity:0"/><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'),
-  search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.500-3.500"/>'),
+  bite: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'),
+  search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>'),
   plate: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>')
 };
 
-const WARN = {
-  "🍭": {k:"sugar",  label:"High sugar",         why:"Sugar is a leading ingredient or the amount per serving is high. It spikes blood sugar and adds empty calories."},
-  "🧂": {k:"salt",   label:"High salt",          why:"Sodium is high for the serving. Regular excess raises blood pressure."},
-  "🌴": {k:"fats",   label:"Bad fats",           why:"Contains palm oil, hydrogenated or other refined fats that are high in saturated or trans fat."},
-  "🌾": {k:"flour",  label:"Refined flour",      why:"Made mainly with maida. The fibre is stripped out, so it digests fast and keeps you full for less time."},
-  "⚠":  {k:"additives", label:"Additives",       why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
-  "⚠️": {k:"additives", label:"Additives",       why:"Contains artificial additives such as flavour enhancers, emulsifiers or stabilisers."},
-  "🎨": {k:"colours",label:"Artificial colour",  why:"Uses synthetic colours that add no nutrition and are best avoided, especially for children."},
-  "🧪": {k:"preserv",label:"Preservatives",      why:"Contains chemical preservatives to extend shelf life."},
-  "🏭": {k:"ultra",  label:"Ultra-processed",    why:"Industrially formulated from refined ingredients and additives, far from the original food."}
-};
-const TIERS = {
-  safe:  {n:1, word:"Safe",  sub:"Enjoy freely",        icon:"check"},
-  fine:  {n:2, word:"Fine",  sub:"In moderation",       icon:"check"},
-  limit: {n:3, word:"Limit", sub:"Watch how much",      icon:"alert"},
-  avoid: {n:4, word:"Avoid", sub:"Occasional treat only",icon:"x"}
-};
-
-let products = [];
+// ---------- DATA LAYER ----------
+let products = [], shown = [], visible = PAGE_SIZE;
 
 function parseCSV(text) {
   const rows = []; let row = [], field = "", inQuotes = false;
@@ -218,75 +223,91 @@ function parseCSV(text) {
 }
 
 function escapeHTML(s) {
-  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-const tierKey = t => { t = (t || "").toLowerCase().trim(); return TIERS[t] ? t : ""; };
 
-// BULLETPROOF WARNING PARSER
-const parseWarnings = s => {
+// 🟢 BULLETPROOF WARNING PARSER
+// This catches the emojis flawlessly, stripping out Google Sheet's hidden characters
+function parseWarnings(s) {
   if (!s) return [];
-  // Remove invisible variation selector and split by any whitespace
-  let clean = s.replace(/\uFE0F/g, "").split(/\s+/);
-  let valid = [];
+  let clean = String(s).replace(/\uFE0F/g, "").toLowerCase();
+  let out = [];
   
-  clean.forEach(w => {
-    let found = WARN[w];
-    if (!found) {
-      if (w.includes("🍭")) found = WARN["🍭"];
-      if (w.includes("🧂")) found = WARN["🧂"];
-      if (w.includes("🌴")) found = WARN["🌴"];
-      if (w.includes("🌾")) found = WARN["🌾"];
-      if (w.includes("⚠")) found = WARN["⚠"];
-      if (w.includes("🎨")) found = WARN["🎨"];
-      if (w.includes("🧪")) found = WARN["🧪"];
-      if (w.includes("🏭")) found = WARN["🏭"];
+  for (const e in WARN) {
+    if (clean.includes(e.toLowerCase()) || WARN[e].alias.some(a => new RegExp("\\b" + a + "\\b").test(clean))) {
+      if (!out.includes(e)) out.push(e);
     }
-    if (found && !valid.includes(found)) valid.push(found);
+  }
+  return out;
+}
+
+function tierFromText(t) {
+  t = String(t || "").toLowerCase();
+  const word = ["avoid", "limit", "fine", "safe"].find(k => t.includes(k));
+  if (word) return word;
+  const dot = {"🔴":"avoid", "🟠":"limit", "🟡":"fine", "🟢":"safe"};
+  const e = Object.keys(dot).find(d => t.includes(d));
+  return e ? dot[e] : "";
+}
+
+function analyse(p) {
+  return { list: parseWarnings(p.warnings), key: tierFromText(p.tier), advice: (p.limit || "").trim() };
+}
+
+function prepare(rows) {
+  return rows.map((p, i) => {
+    p._id = i;
+    try { p._a = analyse(p); } catch (e) { p._a = { list: [], key: "", advice: "" }; }
+    p._s = `${p.name} ${p.brand} ${p.category} ${p.barcode}`.toLowerCase();
+    return p;
   });
-  return valid.map(v => Object.keys(WARN).find(k => WARN[k] === v));
-};
+}
 
 // ---------- COMPONENTS ----------
 function meterHTML(key) {
-  const n = key ? TIERS[key].n : 0;
+  const n = TIERS[key] ? TIERS[key].n : 0;
   return `<div class="meter" aria-hidden="true">${[1,2,3,4].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</div>`;
 }
-function verdictHTML(key) {
-  if (!key) return "";
+
+function verdictHTML(key, raw) {
   const t = TIERS[key];
+  if (!t) return raw ? `<div class="verdict"><div class="verdict-word" style="color:var(--muted)">${escapeHTML(raw)}</div></div>` : "";
   return `<div class="verdict">${meterHTML(key)}
     <div class="verdict-word">${t.word}<small>${t.sub}</small></div>
     <div class="verdict-badge">${ICONS[t.icon]}</div></div>`;
 }
+
 function warnsHTML(list) {
   if (!list.length) return `<div class="warns"><div class="clean">${ICONS.check} No warnings flagged</div></div>`;
-  return `<div class="warns">${list.map(w => `<span class="wchip">${ICONS[WARN[w].k]}${WARN[w].label}</span>`).join("")}</div>`;
+  return `<div class="warns">${list.map(e => `<span class="wchip">${ICONS[WARN[e].k]}${WARN[e].label}</span>`).join("")}</div>`;
 }
 
 function cardHTML(p) {
-  const key = tierKey(p.tier), list = parseWarnings(p.warnings);
-  const img = p.image_url
-    ? `<img src="${escapeHTML(p.image_url)}" alt="" loading="lazy" onerror="this.remove()">` : ICONS.plate;
-  return `
-  <article class="card ${key}">
-    <div class="thumb">${img}</div>
-    <div class="head">
-      <h3 class="name">${escapeHTML(p.name || "Unnamed")}</h3>
-      <div class="brand">${escapeHTML(p.brand || "")}</div>
-    </div>
-    ${verdictHTML(key)}
-    ${warnsHTML(list)}
-    ${p.limit ? `<div class="limit-line">${ICONS.bite}<span>${escapeHTML(p.limit)}</span></div>` : ""}
-    <div class="actions">
-      <button class="btn" onclick="openDetails(${p._id})">Why?</button>
-      <button class="btn primary" onclick="openStores(${p._id})">Buy now</button>
-    </div>
-  </article>`;
+  try {
+    const a = p._a;
+    const img = p.image_url
+      ? `<img src="${escapeHTML(p.image_url)}" alt="" loading="lazy" onerror="this.remove()">` : ICONS.plate;
+    return `
+    <article class="card ${a.key}">
+      <div class="thumb">${img}</div>
+      <div class="head">
+        <h3 class="name">${escapeHTML(p.name || "Unnamed")}</h3>
+        <div class="brand">${escapeHTML(p.brand)}</div>
+      </div>
+      ${verdictHTML(a.key, p.tier)}
+      ${warnsHTML(a.list)}
+      ${a.advice ? `<div class="limit-line">${ICONS.bite}<span>${escapeHTML(a.advice)}</span></div>` : ""}
+      <div class="actions">
+        <button class="btn" onclick="openDetails(${p._id})">Why?</button>
+        <button class="btn primary" onclick="openStores(${p._id})">Buy now</button>
+      </div>
+    </article>`;
+  } catch (e) { return ""; }
 }
 
-function render(list, query = "") {
+function render(query = "") {
   const box = document.getElementById("results"), stats = document.getElementById("stats");
-  if (!list.length) {
+  if (!shown.length) {
     box.innerHTML = query ? `
       <div class="submit-card">
         <div class="wi">${ICONS.search}</div>
@@ -296,45 +317,50 @@ function render(list, query = "") {
       </div>` : '<p class="empty">No products found.</p>';
     stats.textContent = ""; return;
   }
-  stats.textContent = `Showing ${list.length} of ${products.length} products`;
-  box.innerHTML = list.map(cardHTML).join("");
+  const part = shown.slice(0, visible);
+  stats.textContent = `Showing ${part.length} of ${shown.length} matches`;
+  box.innerHTML = part.map(cardHTML).join("") +
+    (shown.length > visible ? `<button class="more" onclick="showMore()">Show more</button>` : "");
 }
+
+function showMore() { visible += PAGE_SIZE; render(searchTop.value.trim()); }
 
 function renderLegend() {
   document.getElementById("legend").innerHTML = `
     <h4>What the symbols mean</h4>
     <div class="lgrid">${Object.values(WARN).map(w => `<div class="litem"><span class="wchip" style="padding:6px">${ICONS[w.k]}</span>${w.label}</div>`).join("")}</div>
     <h4>What the meter means</h4>
-    <div class="lgrid">${Object.keys(TIERS).map(k => `<div class="litem card ${k}" style="all:unset;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)">${meterHTML(k).replace('class="meter"', `class="meter" style="--t:var(--${k})"`)}<span><b style="color:var(--ink)">${TIERS[k].word}</b> ${TIERS[k].sub}</span></div>`).join("")}</div>`;
+    <p class="note">The meter is the overall rating for each product.</p>
+    <div class="lgrid">${Object.keys(TIERS).map(k => `<div class="litem" style="--t:var(--${k})">${meterHTML(k)}<span><b>${TIERS[k].word}</b> ${TIERS[k].sub}</span></div>`).join("")}</div>`;
 }
 
-// ---------- SHEET ----------
+// ---------- SHEET MODALS ----------
 const sheet = document.getElementById("sheet"), scrim = document.getElementById("scrim"), sbody = document.getElementById("sheet-body");
 function openSheet(html) { sbody.innerHTML = html; sheet.scrollTop = 0; sheet.classList.add("open"); scrim.classList.add("open"); }
 function closeSheet() { sheet.classList.remove("open"); scrim.classList.remove("open"); }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 
 function openDetails(id) {
-  const p = products[id], key = tierKey(p.tier), list = parseWarnings(p.warnings);
-  const t = key ? TIERS[key] : null;
-  const whyHTML = list.length
-    ? list.map(w => `<div class="why"><div class="wi">${ICONS[WARN[w].k]}</div><div><b>${WARN[w].label}</b><span>${WARN[w].why}</span></div></div>`).join("")
-    : `<div class="why"><div class="wi" style="color:var(--safe)">${ICONS.check}</div><div><b>Nothing flagged</b><span>No sugar, salt, fat, refining or additive concerns were found on this label.</span></div></div>`;
+  const p = products[id]; if (!p) return;
+  const a = p._a, t = TIERS[a.key];
+  const whyHTML = a.list.length
+    ? a.list.map(e => `<div class="why"><div class="wi">${ICONS[WARN[e].k]}</div><div><b>${WARN[e].label}</b><span>${WARN[e].why}</span></div></div>`).join("")
+    : `<div class="why"><div class="wi" style="color:var(--safe)">${ICONS.check}</div><div><b>Nothing flagged</b><span>No sugar, salt, fat, refining or additive concerns were found for this product.</span></div></div>`;
   openSheet(`
     <h2>${escapeHTML(p.name)}</h2>
-    <div class="brand">${escapeHTML(p.brand || "")}</div>
-    <div class="card ${key}" style="box-shadow:none;border-left:0;padding:0;margin:0;display:block;background:none">
-      ${t ? `<div class="verdict" style="margin:0 0 4px">${meterHTML(key)}<div class="verdict-word">${t.word}<small>${t.sub}</small></div></div>` : ""}
-      ${p.limit ? `<div class="limit-line" style="margin-top:12px">${ICONS.bite}<span>${escapeHTML(p.limit)}</span></div>` : ""}
+    <div class="brand">${escapeHTML(p.brand)}</div>
+    <div class="card ${a.key}" style="box-shadow:none;border-left:0;padding:0;margin:0;display:block;background:none">
+      ${t ? `<div class="verdict" style="margin:0 0 4px">${meterHTML(a.key)}<div class="verdict-word">${t.word}<small>${t.sub}</small></div></div>` : ""}
+      ${a.advice ? `<div class="limit-line" style="margin-top:12px">${ICONS.bite}<span>${escapeHTML(a.advice)}</span></div>` : ""}
     </div>
-    <h3>Why this rating</h3>${whyHTML}
-    <h3>Ingredients on the label</h3>
-    <div class="ing">${escapeHTML(p.ingredients_raw || "Ingredients not added yet.")}</div>
+    <h3>Why these warnings</h3>${whyHTML}
+    ${p.ingredients_raw ? `<h3>Ingredients on the label</h3><div class="ing">${escapeHTML(p.ingredients_raw)}</div>` : ""}
     <div class="actions"><button class="btn" onclick="closeSheet()">Close</button><button class="btn primary" onclick="openStores(${id})">Buy now</button></div>`);
 }
 
 function openStores(id) {
-  const p = products[id], q = encodeURIComponent(`${p.brand || ""} ${p.name || ""}`.trim());
+  const p = products[id]; if (!p) return;
+  const q = encodeURIComponent(`${p.brand || ""} ${p.name || ""}`.trim());
   const stores = [
     ["Blinkit", `https://blinkit.com/s/?q=${q}`],
     ["Zepto", `https://www.zeptonow.com/search?query=${q}`],
@@ -348,42 +374,54 @@ function openStores(id) {
     ${stores.map(([n, u]) => `<a class="store" href="${u}" target="_blank" rel="noopener">${n}<span>↗</span></a>`).join("")}`);
 }
 
-// ---------- STATE ----------
+// ---------- SEARCH + STATE ----------
 const homeEl = document.getElementById("home"), resultsEl = document.getElementById("results-page");
 const searchHome = document.getElementById("search-home"), searchTop = document.getElementById("search-top");
+
+function filterAndRender(q) {
+  visible = PAGE_SIZE;
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  shown = words.length ? products.filter(p => words.every(w => p._s.includes(w))) : products;
+  render(q);
+}
 
 function goToResults(q) {
   homeEl.classList.add("hidden"); resultsEl.classList.add("active");
   searchTop.value = q; filterAndRender(q);
   searchTop.focus(); searchTop.setSelectionRange(q.length, q.length);
 }
+
 function goHome() {
   resultsEl.classList.remove("active"); homeEl.classList.remove("hidden");
   searchTop.value = ""; searchHome.value = ""; searchHome.focus();
 }
-function filterAndRender(q) {
-  if (!q) return render(products);
-  const s = q.toLowerCase().trim();
-  render(products.filter(p => `${p.name} ${p.brand} ${p.barcode} ${p.category}`.toLowerCase().includes(s)), q.trim());
-}
+
+let timer;
+const debounce = fn => e => { clearTimeout(timer); timer = setTimeout(() => fn(e), 120); };
 
 searchHome.addEventListener("input", e => { const q = e.target.value.trim(); if (q.length >= 2) goToResults(q); });
 searchHome.addEventListener("keydown", e => { if (e.key === "Enter") { const q = e.target.value.trim(); if (q) goToResults(q); } });
-searchTop.addEventListener("input", e => filterAndRender(e.target.value.trim()));
+searchTop.addEventListener("input", debounce(e => filterAndRender(e.target.value.trim())));
 
+// ---------- LOAD ----------
 async function loadProducts() {
-  const box = document.getElementById("results");
+  const box = document.getElementById("results"), KEY = "fwc_csv";
   box.innerHTML = '<p class="loading">Loading…</p>';
+  let text = "";
   try {
     const res = await fetch(SHEET_CSV_URL);
     if (!res.ok) throw new Error("HTTP " + res.status);
-    products = parseCSV(await res.text());
-    products.forEach((p, i) => p._id = i);
-    if (resultsEl.classList.contains("active")) filterAndRender(searchTop.value.trim());
+    text = await res.text();
+    try { localStorage.setItem(KEY, text); } catch (e) {}
   } catch (err) {
-    box.innerHTML = `<div class="error">Could not load products: ${escapeHTML(err.message)}</div>`;
+    try { text = localStorage.getItem(KEY) || ""; } catch (e) {}
+    if (!text) { box.innerHTML = `<div class="error">Could not load products: ${escapeHTML(err.message)}</div>`; return; }
   }
+  products = prepare(parseCSV(text));
+  if (resultsEl.classList.contains("active")) filterAndRender(searchTop.value.trim());
+  else box.innerHTML = "";
 }
+
 renderLegend();
 loadProducts();
 </script>
