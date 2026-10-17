@@ -222,16 +222,15 @@ function escapeHTML(s) {
 }
 const tierKey = t => { t = (t || "").toLowerCase().trim(); return TIERS[t] ? t : ""; };
 
-// 🔥 BULLETPROOF WARNING PARSER
+// BULLETPROOF WARNING PARSER
 const parseWarnings = s => {
   if (!s) return [];
-  // 1. Remove variation selector (invisible character) and split by any whitespace
+  // Remove invisible variation selector and split by any whitespace
   let clean = s.replace(/\uFE0F/g, "").split(/\s+/);
   let valid = [];
   
   clean.forEach(w => {
     let found = WARN[w];
-    // 2. If not found exactly, check for known unicode/emoji variants
     if (!found) {
       if (w.includes("🍭")) found = WARN["🍭"];
       if (w.includes("🧂")) found = WARN["🧂"];
@@ -244,8 +243,6 @@ const parseWarnings = s => {
     }
     if (found && !valid.includes(found)) valid.push(found);
   });
-  
-  // Return array of keys (e.g., ["salt"])
   return valid.map(v => Object.keys(WARN).find(k => WARN[k] === v));
 };
 
