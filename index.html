@@ -285,8 +285,8 @@ function warnsHTML(list) {
 function cardHTML(p) {
   try {
     const a = p._a;
-    const img = p.image_url
-      ? `<img src="${escapeHTML(p.image_url)}" alt="" loading="lazy" onerror="this.remove()">` : ICONS.plate;
+       const img = p.image_url
+      ? `<img src="${escapeHTML(p.image_url)}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='${ICONS.plate}';">` : ICONS.plate;
     return `
     <article class="card ${a.key}">
       <div class="thumb">${img}</div>
