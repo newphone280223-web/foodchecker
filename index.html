@@ -513,34 +513,13 @@ footer {
     <div class="modal-sub">Choose a store to search for this product</div>
     
     <div class="store-list">
-      <a href="#" id="link-blinkit" target="_blank" rel="noopener" class="store-btn">
-        <div><span class="icon">⚡</span> Blinkit</div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="#" id="link-zepto" target="_blank" rel="noopener" class="store-btn">
-        <div><span class="icon">🟣</span> Zepto</div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="#" id="link-instamart" target="_blank" rel="noopener" class="store-btn">
-        <div><span class="icon">🟠</span> Swiggy Instamart</div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="#" id="link-bigbasket" target="_blank" rel="noopener" class="store-btn">
-        <div><span class="icon">🟢</span> BigBasket</div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="#" id="link-jiomart" target="_blank" rel="noopener" class="store-btn">
-        <div><span class="icon">🔵</span> JioMart</div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="#" id="link-amazon" target="_blank" rel="noopener" class="store-btn">
-        <div><span class="icon">🛒</span> Amazon</div>
-        <span class="arrow">↗</span>
-      </a>
-      <a href="#" id="link-flipkart" target="_blank" rel="noopener" class="store-btn">
-        <div><span class="icon">🛍️</span> Flipkart</div>
-        <span class="arrow">↗</span>
-      </a>
+      <a href="#" id="link-blinkit" target="_blank" rel="noopener" class="store-btn">Blinkit <span class="arrow">↗</span></a>
+      <a href="#" id="link-zepto" target="_blank" rel="noopener" class="store-btn">Zepto <span class="arrow">↗</span></a>
+      <a href="#" id="link-instamart" target="_blank" rel="noopener" class="store-btn">Swiggy Instamart <span class="arrow">↗</span></a>
+      <a href="#" id="link-bigbasket" target="_blank" rel="noopener" class="store-btn">BigBasket <span class="arrow">↗</span></a>
+      <a href="#" id="link-jiomart" target="_blank" rel="noopener" class="store-btn">JioMart <span class="arrow">↗</span></a>
+      <a href="#" id="link-amazon" target="_blank" rel="noopener" class="store-btn">Amazon <span class="arrow">↗</span></a>
+      <a href="#" id="link-flipkart" target="_blank" rel="noopener" class="store-btn">Flipkart <span class="arrow">↗</span></a>
     </div>
   </div>
 </div>
@@ -590,13 +569,12 @@ function buildBuyButtons(p) {
 
   return `
     <div class="buy-row">
-      <button onclick="openBuyModal('${safeName}', '${safeBrand}')" class="buy-btn" style="background: #202124; color: white; border: none; cursor: pointer;">
-        🛒 Where to Buy
+      <button onclick="openBuyModal('${safeName}', '${safeBrand}')" class="buy-btn" style="background: #202124; color: white; border: none; cursor: pointer; padding: 8px 16px; font-size: 13px;">
+        Buy Now
       </button>
     </div>
   `;
 }
-
 // --- Modal Logic ---
 function openBuyModal(name, brand) {
   document.getElementById("modalProductName").innerText = name;
